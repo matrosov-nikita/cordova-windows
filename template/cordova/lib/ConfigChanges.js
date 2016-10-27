@@ -98,7 +98,7 @@ function generateUapCapabilities(munge) {
     }, { parents: {} });
 }
 
-PlatformMunger.prototype.generate_plugin_config_munge = function (changes, plugin_id, vars, edit_config_changes) {
+PlatformMunger.prototype.generate_plugin_config_munge = function (changes, vars, edit_config_changes) {
     var self = this;
 
     if(edit_config_changes) {
@@ -174,10 +174,10 @@ PlatformMunger.prototype.generate_plugin_config_munge = function (changes, plugi
             });
         });
 
-        return PlatformMunger.super_.prototype.generate_plugin_config_munge.call(self, changes, plugin_id, vars);
+        return PlatformMunger.super_.prototype.generate_plugin_config_munge.call(self, changes, vars);
     }
 
-    return PlatformMunger.super_.prototype.generate_plugin_config_munge.call(self, changes, plugin_id, vars, edit_config_changes);
+    return PlatformMunger.super_.prototype.generate_plugin_config_munge.call(self, changes, vars, edit_config_changes);
 };
 
 exports.PlatformMunger = PlatformMunger;
