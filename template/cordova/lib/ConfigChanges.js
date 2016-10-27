@@ -15,8 +15,22 @@
 */
 
 var util = require('util');
+var semver = require('semver');
 var CommonMunger = require('cordova-common').ConfigChanges.PlatformMunger;
-
+var MANIFESTS = {
+    'windows': {
+        '8.1.0': 'package.windows.appxmanifest',
+        '10.0.0': 'package.windows10.appxmanifest'
+    },
+    'phone': {
+        '8.1.0': 'package.phone.appxmanifest',
+        '10.0.0': 'package.windows10.appxmanifest'
+    },
+    'all': {
+        '8.1.0': ['package.windows.appxmanifest', 'package.phone.appxmanifest'],
+        '10.0.0': 'package.windows10.appxmanifest'
+    }
+};
 function PlatformMunger(platform, project_dir, platformJson, pluginInfoProvider) {
     CommonMunger.apply(this, arguments);
 }
@@ -84,9 +98,8 @@ function generateUapCapabilities(munge) {
     }, { parents: {} });
 }
 
-PlatformMunger.prototype.generate_plugin_config_munge = function (pluginInfo, vars, edit_config_changes) {
+PlatformMunger.prototype.generate_plugin_config_munge = function (changes, plugin_id, vars, edit_config_changes) {
     var self = this;
-    var changes = pluginInfo.getConfigFiles(self.platform);
 
     if(edit_config_changes) {
         Array.prototype.push.apply(changes, edit_config_changes);
@@ -161,16 +174,10 @@ PlatformMunger.prototype.generate_plugin_config_munge = function (pluginInfo, va
             });
         });
 
-        // Get clone of plugin info, override method getConfigFile to take changes proudeced by window-specific logic
-        var clonePluginInfo = JSON.parse(JSON.stringify(pluginInfo));
-        clonePluginInfo.getConfigFiles = function() {
-            return changes;
-        }
-
-        return PlatformMunger.super_.prototype.generate_plugin_config_munge.call(self, clonePluginInfo, vars, /*edit_config_changes=*/undefined);
+        return PlatformMunger.super_.prototype.generate_plugin_config_munge.call(self, changes, plugin_id, vars);
     }
 
-    return PlatformMunger.super_.prototype.generate_plugin_config_munge.call(self, pluginInfo, vars, edit_config_changes);
-}
+    return PlatformMunger.super_.prototype.generate_plugin_config_munge.call(self, changes, plugin_id, vars, edit_config_changes);
+};
 
 exports.PlatformMunger = PlatformMunger;
