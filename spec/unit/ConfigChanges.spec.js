@@ -20,6 +20,7 @@
 var BaseMunger = require('cordova-common').ConfigChanges.PlatformMunger;
 var PlatformMunger = require('../../template/cordova/lib/ConfigChanges').PlatformMunger;
 var PluginInfo = require('cordova-common').PluginInfo;
+var PluginInfoProvider = require('cordova-common').PluginInfoProvider;
 var Api = require('../../template/cordova/Api');
 var AppxManifest = require('../../template/cordova/lib/AppxManifest');
 
@@ -32,10 +33,13 @@ var WINDOWS_MANIFEST = 'package.windows.appxmanifest';
 var WINDOWS10_MANIFEST = 'package.windows10.appxmanifest';
 var FIXTURES = path.join(__dirname, 'fixtures');
 var DUMMY_PLUGIN = 'org.test.plugins.capabilityplugin';
+var CONFIG_PLUGIN = 'org.test.configtest';
 
 var dummyPlugin = path.join(FIXTURES, DUMMY_PLUGIN);
+var configplugin = path.join(FIXTURES, CONFIG_PLUGIN);
 var dummyProjName = 'testProj';
 var windowsProject = path.join(FIXTURES, dummyProjName);
+var windows_testapp_jsproj = path.join(FIXTURES, 'windows/TestApp.jsproj');
 
 describe('PlatformMunger', function () {
     var munge, munger;
@@ -158,6 +162,45 @@ describe('Capabilities within package.windows.appxmanifest', function() {
             expect(fail).not.toHaveBeenCalled();
             done();
         });
+    });
+});
+
+describe('generate_plugin_config_munge for windows project', function() {
+    beforeEach(function() {
+        shell.mkdir('-p', tempDir);
+        shell.cp('-rf', windows_testapp_jsproj, tempDir);
+    });
+
+   afterEach(function() {
+        shell.rm('-rf', tempDir);
+    });
+
+    it('should special case config-file elements for windows', function() {
+        var pluginInfoProvider = new PluginInfoProvider();
+        var munger = new PlatformMunger('windows', tempDir, 'unused', null, pluginInfoProvider);
+        var changes = pluginInfoProvider.get(configplugin).getConfigFiles('windows');
+        var munge = munger.generate_plugin_config_munge(changes, {});
+        var packageAppxManifest = munge.files['package.appxmanifest'];
+        var windows81AppxManifest = munge.files['package.windows.appxmanifest'];
+        var winphone81AppxManifest = munge.files['package.phone.appxmanifest'];
+        var windows10AppxManifest = munge.files['package.windows10.appxmanifest'];
+
+        expect(packageAppxManifest.parents['/Parent/Capabilities'][0].xml).toBe('<Capability Note="should-exist-for-all-appxmanifest-target-files" />');
+
+        // 1 comes from versions="=8.1.0" + 1 from versions="=8.1.0" device-target="windows"
+        expect(windows81AppxManifest.parents['/Parent/Capabilities'][0].xml).toBe('<Capability Note="should-exist-for-win81-win-and-phone" />');
+        expect(windows81AppxManifest.parents['/Parent/Capabilities'][0].count).toBe(2);
+        expect(windows81AppxManifest.parents['/Parent/Capabilities'][1].xml).toBe('<Capability Note="should-exist-for-win81-win-only" />');
+        expect(windows81AppxManifest.parents['/Parent/Capabilities'][2].xml).toBe('<Capability Note="should-exist-for-win10-and-win81-win-and-phone" />');
+
+        // 1 comes from versions="=8.1.0" + 1 from versions="=8.1.0" device-target="phone"
+        expect(winphone81AppxManifest.parents['/Parent/Capabilities'][0].xml).toBe('<Capability Note="should-exist-for-win81-win-and-phone" />');
+        expect(winphone81AppxManifest.parents['/Parent/Capabilities'][0].count).toBe(2);
+        expect(winphone81AppxManifest.parents['/Parent/Capabilities'][1].xml).toBe('<Capability Note="should-exist-for-win81-phone-only" />');
+        expect(winphone81AppxManifest.parents['/Parent/Capabilities'][2].xml).toBe('<Capability Note="should-exist-for-win10-and-win81-win-and-phone" />');
+
+        expect(windows10AppxManifest.parents['/Parent/Capabilities'][0].xml).toBe('<Capability Note="should-exist-for-win10-and-win81-win-and-phone" />');
+        expect(windows10AppxManifest.parents['/Parent/Capabilities'][1].xml).toBe('<Capability Note="should-exist-in-win10-only" />');
     });
 });
 
